@@ -5,8 +5,8 @@ using System.Windows.Media;
 namespace WaveCraft.Views.Controls
 {
     /// <summary>
-    /// A vertical peak meter with RMS and peak indicators.
-    /// Uses gradient colour stops: green → yellow → red.
+    /// Vertical stereo peak meter with segmented green→yellow→red bars and peak hold indicators.
+    /// Ableton Live styling: flat, minimalist, no gradients or glows.
     /// </summary>
     public class PeakMeterControl : Control
     {
@@ -32,6 +32,13 @@ namespace WaveCraft.Views.Controls
             set => SetValue(RmsLevelProperty, value);
         }
 
+        private static readonly Color BgColor = Color.FromRgb(0x1E, 0x1E, 0x1E);
+        private static readonly Color SegmentGap = Color.FromRgb(0x2D, 0x2D, 0x2D);
+        private static readonly Color GreenColor = Color.FromRgb(0x00, 0xCC, 0x00);
+        private static readonly Color YellowColor = Color.FromRgb(0xCC, 0xCC, 0x00);
+        private static readonly Color RedColor = Color.FromRgb(0xCC, 0x00, 0x00);
+        private static readonly Color BorderColor = Color.FromRgb(0x33, 0x33, 0x33);
+
         protected override void OnRender(DrawingContext dc)
         {
             base.OnRender(dc);
@@ -40,47 +47,52 @@ namespace WaveCraft.Views.Controls
             double h = ActualHeight;
             if (w <= 0 || h <= 0) return;
 
-            // Background
-            dc.DrawRectangle(
-                new SolidColorBrush(Color.FromRgb(17, 17, 27)),
-                null, new Rect(0, 0, w, h));
+            dc.DrawRectangle(new SolidColorBrush(BgColor), null, new Rect(0, 0, w, h));
 
-            // RMS level bar
-            double rmsHeight = Math.Clamp(RmsLevel, 0, 1) * h;
-            if (rmsHeight > 0)
+            const int segmentCount = 24;
+            const int gapSize = 1;
+            double segmentHeight = (h - (segmentCount - 1) * gapSize) / segmentCount;
+
+            float rmsLevel = Math.Clamp(RmsLevel, 0, 1);
+            float peakLevel = Math.Clamp(PeakLevel, 0, 1);
+
+            for (int i = 0; i < segmentCount; i++)
             {
-                var rmsRect = new Rect(1, h - rmsHeight, w - 2, rmsHeight);
-                dc.DrawRectangle(GetLevelBrush(RmsLevel, 0.6), null, rmsRect);
+                double segY = h - (i + 1) * segmentHeight - i * gapSize;
+                float segmentThreshold = (i + 1) / (float)segmentCount;
+
+                Color segColor;
+                if (segmentThreshold > 0.9f)
+                    segColor = RedColor;
+                else if (segmentThreshold > 0.7f)
+                    segColor = YellowColor;
+                else
+                    segColor = GreenColor;
+
+                if (rmsLevel >= segmentThreshold)
+                {
+                    dc.DrawRectangle(new SolidColorBrush(segColor), null,
+                        new Rect(0, segY, w, segmentHeight));
+                }
             }
 
-            // Peak level indicator (thin line)
-            double peakY = h - Math.Clamp(PeakLevel, 0, 1) * h;
-            if (PeakLevel > 0.001f)
+            double peakY = h - (peakLevel * h);
+            if (peakLevel > 0.001f)
             {
-                var peakColor = PeakLevel > 0.9f
-                    ? Colors.Red
-                    : PeakLevel > 0.7f ? Colors.Yellow : Colors.LimeGreen;
-                dc.DrawLine(new Pen(new SolidColorBrush(peakColor), 2),
-                    new Point(0, peakY), new Point(w, peakY));
+                Color peakColor;
+                if (peakLevel > 0.9f)
+                    peakColor = RedColor;
+                else if (peakLevel > 0.7f)
+                    peakColor = YellowColor;
+                else
+                    peakColor = GreenColor;
+
+                dc.DrawRectangle(new SolidColorBrush(peakColor), null,
+                    new Rect(0, peakY - 1, w, 2));
             }
 
-            // Border
-            dc.DrawRectangle(null,
-                new Pen(new SolidColorBrush(Color.FromRgb(69, 71, 90)), 1),
-                new Rect(0, 0, w, h));
-        }
-
-        private static Brush GetLevelBrush(float level, double opacity)
-        {
-            Color color;
-            if (level > 0.9f)
-                color = Color.FromArgb((byte)(opacity * 255), 255, 50, 50);
-            else if (level > 0.7f)
-                color = Color.FromArgb((byte)(opacity * 255), 255, 220, 50);
-            else
-                color = Color.FromArgb((byte)(opacity * 255), 50, 220, 100);
-
-            return new SolidColorBrush(color);
+            dc.DrawRectangle(null, new Pen(new SolidColorBrush(BorderColor), 1),
+                new Rect(0.5, 0.5, w - 1, h - 1));
         }
     }
 }

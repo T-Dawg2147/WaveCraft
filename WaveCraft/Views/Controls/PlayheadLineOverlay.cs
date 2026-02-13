@@ -5,8 +5,8 @@ using System.Windows.Media;
 namespace WaveCraft.Views.Controls
 {
     /// <summary>
-    /// A simple overlay that draws a vertical playhead line over the track area.
-    /// Position is bound to the normalised PlayheadPosition (0–1).
+    /// Vertical playhead line overlay with Ableton Live styling.
+    /// Orange line with no glow, driven by PlayheadPosition.
     /// </summary>
     public class PlayheadLineOverlay : FrameworkElement
     {
@@ -20,7 +20,7 @@ namespace WaveCraft.Views.Controls
             DependencyProperty.Register(nameof(LineColor), typeof(Color),
                 typeof(PlayheadLineOverlay),
                 new FrameworkPropertyMetadata(
-                    Color.FromRgb(166, 227, 161),
+                    Color.FromRgb(0xFF, 0x66, 0x00),
                     FrameworkPropertyMetadataOptions.AffectsRender));
 
         public double PlayheadPosition
@@ -37,7 +37,7 @@ namespace WaveCraft.Views.Controls
 
         public PlayheadLineOverlay()
         {
-            IsHitTestVisible = false; // Don't block mouse events on tracks below
+            IsHitTestVisible = false;
         }
 
         protected override void OnRender(DrawingContext dc)
@@ -51,17 +51,9 @@ namespace WaveCraft.Views.Controls
             double x = PlayheadPosition * w;
             x = Math.Clamp(x, 0, w);
 
-            // Draw the line
-            var pen = new Pen(new SolidColorBrush(LineColor), 1.5);
+            var pen = new Pen(new SolidColorBrush(LineColor), 2);
             pen.Freeze();
             dc.DrawLine(pen, new Point(x, 0), new Point(x, h));
-
-            // Draw a small glow effect (two semi-transparent lines)
-            var glowPen = new Pen(
-                new SolidColorBrush(Color.FromArgb(50, LineColor.R, LineColor.G, LineColor.B)),
-                3);
-            glowPen.Freeze();
-            dc.DrawLine(glowPen, new Point(x, 0), new Point(x, h));
         }
     }
 }
