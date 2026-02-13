@@ -126,8 +126,7 @@
                 <TextBox Grid.Column="0" 
                          x:Name="SearchBox"
                          VerticalContentAlignment="Center"
-                         Height="28" Margin="0,0,8,0"
-                         Text="Search instruments..."/>
+                         Height="28" Margin="0,0,8,0"/>
 
                 <Button Grid.Column="1" Content="Load SoundFont" 
                         Command="{Binding LoadSoundFontCommand}"
