@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:WaveCraft.Views.Controls"
+        xmlns:converters="clr-namespace:WaveCraft.Converters"
         Title="{Binding Title}"
         Width="1600" Height="900"
         MinWidth="1200" MinHeight="700"
@@ -19,6 +20,74 @@
     </Window.InputBindings>
 
     <Window.Resources>
+        <!-- Clip Template for Audio clips -->
+        <DataTemplate x:Key="AudioClipTemplate">
+            <Border Background="{StaticResource AbletonPanel}" 
+                    BorderBrush="{StaticResource AbletonOrange}"
+                    BorderThickness="1"
+                    CornerRadius="2"
+                    Margin="2"
+                    Height="70"
+                    MinWidth="40">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="16"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" 
+                               Text="{Binding Name}"
+                               Foreground="{StaticResource AbletonTextPrimary}"
+                               FontSize="9"
+                               Margin="4,2"
+                               TextTrimming="CharacterEllipsis"/>
+
+                    <controls:WaveformControl Grid.Row="1"
+                                              Waveform="{Binding WaveformData}"
+                                              WaveColor="#FF89B4FA"
+                                              RmsColor="#FF45475A"
+                                              BackgroundColor="#FF1E1E1E"
+                                              Margin="2"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- MIDI Clip Template -->
+        <DataTemplate x:Key="MidiClipTemplate">
+            <Border Background="{StaticResource AbletonPanel}" 
+                    BorderBrush="#FF89B4FA"
+                    BorderThickness="1"
+                    CornerRadius="2"
+                    Margin="2"
+                    Height="70"
+                    MinWidth="40">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="16"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" 
+                               Text="{Binding Name}"
+                               Foreground="{StaticResource AbletonTextPrimary}"
+                               FontSize="9"
+                               Margin="4,2"
+                               TextTrimming="CharacterEllipsis"/>
+
+                    <controls:MidiClipControl Grid.Row="1"
+                                              MidiClip="{Binding Model}"
+                                              NoteColor="#FF89B4FA"
+                                              BackgroundColor="#FF1E1E1E"
+                                              Margin="2"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Clip Template Selector -->
+        <converters:ClipTemplateSelector x:Key="ClipTemplateSelector"
+                                         AudioClipTemplate="{StaticResource AudioClipTemplate}"
+                                         MidiClipTemplate="{StaticResource MidiClipTemplate}"/>
+
         <!-- Track Header Template -->
         <DataTemplate x:Key="TrackHeaderTemplate">
             <Border Background="{StaticResource AbletonPanel}" 
@@ -32,6 +101,7 @@
 
                     <Grid Grid.Column="0" Margin="6,4">
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
@@ -47,10 +117,34 @@
                                  FontSize="11" FontWeight="SemiBold"
                                  Background="Transparent" BorderThickness="0"
                                  Foreground="{StaticResource AbletonTextHighlight}"
-                                 Margin="0,0,0,4"/>
+                                 Margin="0,0,0,2"/>
+
+                        <!-- Instrument name (MIDI tracks only) -->
+                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                   Text="{Binding InstrumentName}"
+                                   FontSize="9"
+                                   Foreground="{StaticResource AbletonTextSecondary}"
+                                   Margin="0,0,0,4"
+                                   Visibility="{Binding IsMidiTrack, Converter={StaticResource BoolToVis}}">
+                            <TextBlock.InputBindings>
+                                <MouseBinding MouseAction="LeftClick" 
+                                              Command="{Binding SelectInstrumentCommand}"/>
+                            </TextBlock.InputBindings>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Cursor" Value="Hand"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource AbletonOrange}"/>
+                                            <Setter Property="TextDecorations" Value="Underline"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
 
                         <!-- Volume slider and label -->
-                        <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
+                        <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
@@ -78,7 +172,7 @@
                         </Grid>
 
                         <!-- Buttons row -->
-                        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" 
+                        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" 
                                     Orientation="Horizontal" Margin="0,4,0,0">
                             <ToggleButton Content="M" 
                                           IsChecked="{Binding IsMuted}"
@@ -119,38 +213,6 @@
                                        FontSize="9" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Grid>
-                </Grid>
-            </Border>
-        </DataTemplate>
-
-        <!-- Clip Template for both Audio and MIDI clips -->
-        <DataTemplate x:Key="ClipTemplate">
-            <Border Background="{StaticResource AbletonPanel}" 
-                    BorderBrush="{StaticResource AbletonOrange}"
-                    BorderThickness="1"
-                    CornerRadius="2"
-                    Margin="2"
-                    Height="70"
-                    MinWidth="40">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="16"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Grid.Row="0" 
-                               Text="{Binding Name}"
-                               Foreground="{StaticResource AbletonTextPrimary}"
-                               FontSize="9"
-                               Margin="4,2"
-                               TextTrimming="CharacterEllipsis"/>
-
-                    <controls:WaveformControl Grid.Row="1"
-                                              Waveform="{Binding WaveformData}"
-                                              WaveColor="#FF89B4FA"
-                                              RmsColor="#FF45475A"
-                                              BackgroundColor="#FF1E1E1E"
-                                              Margin="2"/>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -408,7 +470,7 @@
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
                                                         <ContentControl Content="{Binding}" 
-                                                                        ContentTemplate="{StaticResource ClipTemplate}"/>
+                                                                        ContentTemplateSelector="{StaticResource ClipTemplateSelector}"/>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>

@@ -12,8 +12,8 @@ namespace WaveCraft.Views.Controls
     /// </summary>
     public class MidiClipControl : Image
     {
-        public static readonly DependencyProperty ClipProperty =
-            DependencyProperty.Register(nameof(Clip), typeof(MidiClip),
+        public static readonly DependencyProperty MidiClipProperty =
+            DependencyProperty.Register(nameof(MidiClip), typeof(MidiClip),
                 typeof(MidiClipControl),
                 new PropertyMetadata(null, OnClipChanged));
 
@@ -27,10 +27,10 @@ namespace WaveCraft.Views.Controls
                 typeof(MidiClipControl),
                 new PropertyMetadata(Color.FromRgb(0x1E, 0x1E, 0x1E), OnClipChanged));
 
-        public MidiClip? Clip
+        public Core.Midi.MidiClip? MidiClip
         {
-            get => (MidiClip?)GetValue(ClipProperty);
-            set => SetValue(ClipProperty, value);
+            get => (Core.Midi.MidiClip?)GetValue(MidiClipProperty);
+            set => SetValue(MidiClipProperty, value);
         }
 
         public Color NoteColor
@@ -60,7 +60,7 @@ namespace WaveCraft.Views.Controls
 
         private void RedrawClip()
         {
-            var clip = Clip;
+            var clip = MidiClip;
             if (clip == null || clip.Notes.Count == 0)
             {
                 Source = null;
