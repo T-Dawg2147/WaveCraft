@@ -195,17 +195,10 @@
                     BorderBrush="{StaticResource AbletonBorder}"
                     BorderThickness="0,0,0,1">
                 <Canvas x:Name="RulerCanvas" ClipToBounds="True">
-                    <!-- Ruler timeline (bars/beats) will be drawn by code-behind or here -->
-                    <TextBlock Text="1" Foreground="{StaticResource AbletonTextSecondary}"
-                               FontSize="10" Canvas.Left="0" Canvas.Top="8"/>
-                    <TextBlock Text="2" Foreground="{StaticResource AbletonTextSecondary}"
-                               FontSize="10" Canvas.Left="100" Canvas.Top="8"/>
-                    <TextBlock Text="3" Foreground="{StaticResource AbletonTextSecondary}"
-                               FontSize="10" Canvas.Left="200" Canvas.Top="8"/>
-                    <TextBlock Text="4" Foreground="{StaticResource AbletonTextSecondary}"
-                               FontSize="10" Canvas.Left="300" Canvas.Top="8"/>
-                    <TextBlock Text="5" Foreground="{StaticResource AbletonTextSecondary}"
-                               FontSize="10" Canvas.Left="400" Canvas.Top="8"/>
+                    <!-- TODO: Ruler timeline should be drawn dynamically in code-behind
+                         Show bar numbers at major grid intervals
+                         Position bars based on tempo and time signature
+                         Sync with PianoRollControl's horizontal zoom/scroll -->
                 </Canvas>
             </Border>
 
@@ -215,8 +208,11 @@
                     BorderBrush="{StaticResource AbletonBorder}"
                     BorderThickness="0,0,1,0">
                 <Canvas x:Name="PianoKeysCanvas" ClipToBounds="True">
-                    <!-- Piano keys will be rendered here (white/black keys) -->
-                    <!-- This can be done with custom drawing or in code-behind -->
+                    <!-- TODO: Piano keys should be drawn dynamically in code-behind
+                         Draw white keys (full width) and black keys (narrower)
+                         Highlight on hover for note preview
+                         Sync vertical scrolling with PianoRollControl
+                         88 keys from A0 (21) to C8 (108), 16px height each -->
                 </Canvas>
             </Border>
 
@@ -257,14 +253,10 @@
                 <Canvas Grid.Column="1" x:Name="VelocityCanvas"
                         Background="{StaticResource AbletonBackground}"
                         ClipToBounds="True">
-                    <!-- Velocity bars will be drawn dynamically based on Notes collection -->
-                    <!-- For now, showing placeholder grid -->
-                    <Rectangle Width="4" Height="60" Fill="{StaticResource AbletonOrange}"
-                               Canvas.Left="100" Canvas.Bottom="0" VerticalAlignment="Bottom"/>
-                    <Rectangle Width="4" Height="80" Fill="{StaticResource AbletonOrange}"
-                               Canvas.Left="150" Canvas.Bottom="0" VerticalAlignment="Bottom"/>
-                    <Rectangle Width="4" Height="50" Fill="{StaticResource AbletonOrange}"
-                               Canvas.Left="200" Canvas.Bottom="0" VerticalAlignment="Bottom"/>
+                    <!-- TODO: Velocity bars should be drawn dynamically in code-behind based on Notes collection
+                         Each bar should represent a note's velocity as a vertical bar positioned at the note's time
+                         Height = (Velocity / 127) * Canvas.ActualHeight
+                         Left = same as note X position in PianoRollControl -->
                 </Canvas>
             </Grid>
         </Border>
