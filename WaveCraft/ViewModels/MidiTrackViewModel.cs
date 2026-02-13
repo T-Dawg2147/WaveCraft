@@ -92,11 +92,25 @@ namespace WaveCraft.ViewModels
 
         public bool IsMidiTrack => true;
 
+        /// <summary>
+        /// Get the current instrument name for display on track header.
+        /// </summary>
+        public string InstrumentName
+        {
+            get
+            {
+                if (_track.VstPlugin != null)
+                    return _track.VstPlugin.PluginName ?? "VST Plugin";
+                return "Built-In Synth";
+            }
+        }
+
         // ---- Commands ----
         public ICommand OpenPianoRollCommand { get; }
         public ICommand RemoveClipCommand { get; }
         public ICommand ToggleMuteCommand { get; }
         public ICommand ToggleSoloCommand { get; }
+        public ICommand SelectInstrumentCommand { get; }
 
         public MidiTrackViewModel(MidiTrack track, IDialogService dialogService,
             IProjectService projectService, IEventAggregator events)
@@ -116,6 +130,7 @@ namespace WaveCraft.ViewModels
             RemoveClipCommand = new RelayCommand(p => RemoveClip(p as MidiClipViewModel));
             ToggleMuteCommand = new RelayCommand(() => IsMuted = !IsMuted);
             ToggleSoloCommand = new RelayCommand(() => IsSoloed = !IsSoloed);
+            SelectInstrumentCommand = new RelayCommand(SelectInstrument);
 
             // Load existing clips
             foreach (var clip in track.Clips)
@@ -140,6 +155,32 @@ namespace WaveCraft.ViewModels
             _track.Clips.Remove(clipVm.Model);
             Clips.Remove(clipVm);
             _events.Publish(new TrackClipsChanged(0));
+        }
+
+        private void SelectInstrument()
+        {
+            var selectorVm = new InstrumentSelectorViewModel(_dialogService, _projectService.CurrentProject.SampleRate);
+            
+            var window = new Views.InstrumentSelectorWindow
+            {
+                DataContext = selectorVm,
+                Owner = System.Windows.Application.Current.MainWindow
+            };
+
+            bool? result = window.ShowDialog();
+            if (result == true && selectorVm.ActiveInstrument != null)
+            {
+                var instrument = selectorVm.ActiveInstrument;
+                
+                // TODO: Apply the selected instrument to this track
+                // The current architecture needs enhancement to support this:
+                // - If instrument is a VstPluginInstance, set _track.VstPlugin = (VstPluginInstance)instrument
+                // - If instrument is a SynthInstrument, we'd need to adapt it to MidiSynthesizer
+                
+                // Once the architecture supports IInstrument directly on MidiTrack:
+                // _track.Instrument = instrument;
+                // OnPropertyChanged(nameof(InstrumentName));
+            }
         }
     }
 
