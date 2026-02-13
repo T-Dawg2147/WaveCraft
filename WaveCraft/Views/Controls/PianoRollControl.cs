@@ -464,9 +464,12 @@ namespace WaveCraft.Views.Controls
                         int velY0 = y + h - 2 - velBarHeight;
                         int velY1 = y + h - 2;
 
-                        if (velY0 >= 0 && velY1 < height)
+                        int clampedVelY0 = Math.Max(0, velY0);
+                        int clampedVelY1 = Math.Min(height, velY1);
+
+                        if (clampedVelY0 < clampedVelY1)
                         {
-                            for (int py = Math.Max(0, velY0); py < Math.Min(height, velY1); py++)
+                            for (int py = clampedVelY0; py < clampedVelY1; py++)
                                 for (int px = x0 + 1; px < x1 - 1 && px < width; px++)
                                     pixels[py * stride + px] = VelocityBarColor;
                         }
