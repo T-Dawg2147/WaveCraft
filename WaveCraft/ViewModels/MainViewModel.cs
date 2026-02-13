@@ -212,10 +212,11 @@ namespace WaveCraft.ViewModels
         private void AddMidiTrack()
         {
             var project = _projectService.CurrentProject;
-            var midiTrack = new MidiTrack(project.SampleRate)
-            {
-                Name = $"MIDI {Mixer.Tracks.Count + 1}"
-            };
+            
+            // Add track to the mixer
+            var midiTrack = project.Mixer.AddMidiTrack(
+                $"MIDI {Mixer.AllTracks.Count + 1}", 
+                project.SampleRate);
 
             // Create a default empty clip
             var clip = new MidiClip
@@ -226,8 +227,9 @@ namespace WaveCraft.ViewModels
             };
             midiTrack.Clips.Add(clip);
 
-            // Add to mixer (we'd need to extend TrackMixer to support MidiTracks
-            // — see the note below)
+            // Refresh the mixer UI to show the new track
+            Mixer.RefreshTracks();
+            
             StatusText = $"Added MIDI track: {midiTrack.Name}";
 
             // Open the piano roll for this clip

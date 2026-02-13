@@ -12,11 +12,27 @@ namespace WaveCraft.Core.Project
         public string? FilePath { get; set; }
         public int SampleRate { get; set; } = 44100;
         public int Channels { get; set; } = 2;
-        public float Bpm { get; set; } = 120f;
+        
+        private float _bpm = 120f;
+        public float Bpm 
+        { 
+            get => _bpm;
+            set 
+            { 
+                _bpm = value; 
+                Mixer.Bpm = value;
+            }
+        }
+        
         public int TimeSignatureNumerator { get; set; } = 4;
         public int TimeSignatureDenominator { get; set; } = 4;
 
         public TrackMixer Mixer { get; } = new();
+
+        public DawProject()
+        {
+            Mixer.Bpm = _bpm;
+        }
 
         public AudioFormat Format => new(SampleRate, Channels, 32);
 

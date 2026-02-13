@@ -15,13 +15,16 @@ namespace WaveCraft.Core.Tracks
     public class TrackMixer : IDisposable
     {
         private readonly List<AudioTrack> _tracks = new();
+        private readonly List<MidiTrack> _midiTracks = new();
         private AudioBuffer? _masterBuffer;
         private readonly Effects.EffectChain _masterEffects = new();
 
         public IReadOnlyList<AudioTrack> Tracks => _tracks;
+        public IReadOnlyList<MidiTrack> MidiTracks => _midiTracks;
         public Effects.EffectChain MasterEffects => _masterEffects;
 
         public float MasterVolume { get; set; } = 1.0f;
+        public float Bpm { get; set; } = 120f;
 
         // Peak levels from the last render — read by the UI for metering
         public float LastLeftPeak { get; private set; }
@@ -39,6 +42,19 @@ namespace WaveCraft.Core.Tracks
         public void RemoveTrack(AudioTrack track)
         {
             _tracks.Remove(track);
+            track.Dispose();
+        }
+
+        public MidiTrack AddMidiTrack(string name, int sampleRate)
+        {
+            var track = new MidiTrack(sampleRate) { Name = name };
+            _midiTracks.Add(track);
+            return track;
+        }
+
+        public void RemoveMidiTrack(MidiTrack track)
+        {
+            _midiTracks.Remove(track);
             track.Dispose();
         }
 
@@ -66,12 +82,24 @@ namespace WaveCraft.Core.Tracks
             {
                 if (track.IsSoloed) { hasSolo = true; break; }
             }
+            foreach (var track in _midiTracks)
+            {
+                if (track.IsSoloed) { hasSolo = true; break; }
+            }
 
-            // Render each track and mix into master
+            // Render each audio track and mix into master
             foreach (var track in _tracks)
             {
                 var trackOutput = track.Render(startFrame, frameCount,
                     channels, sampleRate, hasSolo);
+                _masterBuffer.MixFrom(trackOutput);
+            }
+
+            // Render each MIDI track and mix into master
+            foreach (var track in _midiTracks)
+            {
+                var trackOutput = track.Render(startFrame, frameCount,
+                    channels, sampleRate, Bpm, hasSolo);
                 _masterBuffer.MixFrom(trackOutput);
             }
 
@@ -103,6 +131,11 @@ namespace WaveCraft.Core.Tracks
                 long dur = track.GetTotalDurationFrames();
                 if (dur > max) max = dur;
             }
+            foreach (var track in _midiTracks)
+            {
+                long dur = track.GetTotalDurationFrames(Bpm, 44100);
+                if (dur > max) max = dur;
+            }
             return max;
         }
 
@@ -110,6 +143,8 @@ namespace WaveCraft.Core.Tracks
         {
             foreach (var track in _tracks)
                 track.Effects.Reset();
+            foreach (var track in _midiTracks)
+                track.Reset();
             _masterEffects.Reset();
         }
 
@@ -118,6 +153,9 @@ namespace WaveCraft.Core.Tracks
             foreach (var track in _tracks)
                 track.Dispose();
             _tracks.Clear();
+            foreach (var track in _midiTracks)
+                track.Dispose();
+            _midiTracks.Clear();
             _masterBuffer?.Dispose();
             _masterEffects.Dispose();
         }
