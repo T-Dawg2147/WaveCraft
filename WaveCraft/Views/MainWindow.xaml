@@ -27,17 +27,10 @@
                     Height="80">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="4"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Colored track indicator -->
-                    <Rectangle Grid.Column="0" 
-                               Fill="{Binding Converter={StaticResource TrackColor}, 
-                                             RelativeSource={RelativeSource AncestorType=ItemsControl}, 
-                                             Path=(ItemsControl.AlternationIndex)}"/>
-
-                    <Grid Grid.Column="1" Margin="6,4">
+                    <Grid Grid.Column="0" Margin="6,4">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
@@ -50,7 +43,7 @@
 
                         <!-- Track name -->
                         <TextBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
-                                 Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                                 Text="{Binding Name, UpdateSourceTrigger=LostFocus}"
                                  FontSize="11" FontWeight="SemiBold"
                                  Background="Transparent" BorderThickness="0"
                                  Foreground="{StaticResource AbletonTextHighlight}"
@@ -273,7 +266,7 @@
                         <TextBlock Text="BPM" 
                                    Foreground="{StaticResource AbletonTextSecondary}"
                                    FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <TextBox Text="{Binding Transport.Bpm, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox Text="{Binding Transport.Bpm, UpdateSourceTrigger=LostFocus}"
                                  Width="50" Height="24"
                                  FontFamily="Consolas" FontSize="11"
                                  VerticalContentAlignment="Center"
