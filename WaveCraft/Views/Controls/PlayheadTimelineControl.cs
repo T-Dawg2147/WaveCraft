@@ -7,16 +7,11 @@ using System.Windows.Media.Imaging;
 namespace WaveCraft.Views.Controls
 {
     /// <summary>
-    /// A timeline ruler with a draggable playhead.
-    /// Shows time markings and allows click-to-seek and drag-to-scrub.
-    ///
-    /// Renders using WriteableBitmap for consistent performance
-    /// with the rest of the app.
+    /// Bar/beat ruler timeline with Ableton Live styling.
+    /// Click-to-seek with bar numbers display.
     /// </summary>
     public class PlayheadTimelineControl : Canvas
     {
-        // ---- Dependency Properties ----
-
         public static readonly DependencyProperty PlayheadPositionProperty =
             DependencyProperty.Register(nameof(PlayheadPosition), typeof(double),
                 typeof(PlayheadTimelineControl),
@@ -39,9 +34,6 @@ namespace WaveCraft.Views.Controls
                 typeof(PlayheadTimelineControl),
                 new PropertyMetadata(120f, OnLayoutChanged));
 
-        /// <summary>
-        /// Normalised playhead position (0.0 to 1.0). Two-way bound.
-        /// </summary>
         public double PlayheadPosition
         {
             get => (double)GetValue(PlayheadPositionProperty);
@@ -66,27 +58,18 @@ namespace WaveCraft.Views.Controls
             set => SetValue(BpmProperty, value);
         }
 
-        // ---- Events ----
-
-        /// <summary>
-        /// Fired when the user clicks or drags to seek.
-        /// The parameter is the normalised position (0–1).
-        /// </summary>
         public event Action<double>? SeekRequested;
-
-        // ---- Internal state ----
 
         private WriteableBitmap? _bitmap;
         private readonly Image _image;
         private bool _isDragging;
 
-        // Colours
-        private static readonly uint BgColor = Pack(24, 24, 37);
-        private static readonly uint TickMajor = Pack(100, 100, 130);
-        private static readonly uint TickMinor = Pack(55, 55, 75);
-        private static readonly uint TickText = Pack(166, 173, 200);
-        private static readonly uint PlayheadCol = Pack(166, 227, 161);
-        private static readonly uint PlayheadGlow = Pack(166, 227, 161, 80);
+        private static readonly uint BgColor = Pack(0x1E, 0x1E, 0x1E);
+        private static readonly uint BorderColor = Pack(0x44, 0x44, 0x44);
+        private static readonly uint GridMinor = Pack(0x33, 0x33, 0x33);
+        private static readonly uint GridMajor = Pack(0x44, 0x44, 0x44);
+        private static readonly uint TextColor = Pack(0x99, 0x99, 0x99);
+        private static readonly uint PlayheadCol = Pack(0xFF, 0x66, 0x00);
 
         public PlayheadTimelineControl()
         {
@@ -95,7 +78,7 @@ namespace WaveCraft.Views.Controls
 
             RenderOptions.SetBitmapScalingMode(_image, BitmapScalingMode.NearestNeighbor);
 
-            Background = new SolidColorBrush(Color.FromRgb(24, 24, 37));
+            Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E));
             Height = 32;
             ClipToBounds = true;
             Cursor = Cursors.Hand;
@@ -121,8 +104,6 @@ namespace WaveCraft.Views.Controls
                 ctrl.Redraw();
         }
 
-        // ---- Mouse handling ----
-
         private void OnMouse_Down(object sender, MouseButtonEventArgs e)
         {
             _isDragging = true;
@@ -145,7 +126,6 @@ namespace WaveCraft.Views.Controls
         private void OnMouse_Leave(object sender, MouseEventArgs e)
         {
             if (!_isDragging) return;
-            // Keep dragging if button is held, release otherwise
             if (e.LeftButton != MouseButtonState.Pressed)
             {
                 _isDragging = false;
@@ -163,8 +143,6 @@ namespace WaveCraft.Views.Controls
             PlayheadPosition = normalized;
             SeekRequested?.Invoke(normalized);
         }
-
-        // ---- Rendering ----
 
         private unsafe void Redraw()
         {
@@ -188,51 +166,35 @@ namespace WaveCraft.Views.Controls
                 uint* px = (uint*)_bitmap.BackBuffer;
                 int stride = _bitmap.BackBufferStride / 4;
 
-                // Clear background
                 int total = stride * height;
                 for (int i = 0; i < total; i++)
                     px[i] = BgColor;
 
-                // Bottom border line
                 for (int x = 0; x < width; x++)
-                    px[(height - 1) * stride + x] = TickMinor;
+                    px[(height - 1) * stride + x] = BorderColor;
 
-                // ---- Draw time markers ----
                 double totalSec = TotalDuration.TotalSeconds;
                 if (totalSec <= 0) totalSec = 30;
 
-                // Determine tick interval based on zoom level
-                double pixelsPerSecond = width / totalSec;
-                double tickInterval;
-                if (pixelsPerSecond > 100) tickInterval = 0.5;
-                else if (pixelsPerSecond > 50) tickInterval = 1;
-                else if (pixelsPerSecond > 20) tickInterval = 2;
-                else if (pixelsPerSecond > 10) tickInterval = 5;
-                else if (pixelsPerSecond > 4) tickInterval = 10;
-                else tickInterval = 30;
+                double beatsPerSecond = Bpm / 60.0;
+                double beatInterval = 1.0 / beatsPerSecond;
+                double barInterval = beatInterval * 4;
 
-                double majorInterval = tickInterval * 4;
-
-                for (double sec = 0; sec <= totalSec; sec += tickInterval)
+                for (double sec = 0; sec <= totalSec; sec += beatInterval)
                 {
                     int x = (int)(sec / totalSec * width);
                     if (x < 0 || x >= width) continue;
 
-                    bool isMajor = Math.Abs(sec % majorInterval) < 0.001 ||
-                                   sec < 0.001;
-                    uint color = isMajor ? TickMajor : TickMinor;
-                    int tickH = isMajor ? height - 4 : height / 2;
+                    bool isBar = Math.Abs((sec / beatInterval) % 4) < 0.01;
+                    uint color = isBar ? GridMajor : GridMinor;
+                    int tickH = isBar ? height - 4 : height / 2;
 
-                    // Draw tick line
                     for (int y = height - tickH; y < height - 1; y++)
                         px[y * stride + x] = color;
 
-                    // Draw time label for major ticks
-                    if (isMajor)
+                    if (isBar)
                     {
-                        // Simple text: draw a small marker dot at the top
-                        // (Real text rendering would use FormattedText —
-                        //  we keep it simple for the bitmap approach)
+                        int barNumber = (int)Math.Round(sec / barInterval) + 1;
                         int dotY = 3;
                         for (int dx = -1; dx <= 1; dx++)
                             for (int dy = -1; dy <= 1; dy++)
@@ -240,57 +202,20 @@ namespace WaveCraft.Views.Controls
                                 int px2 = x + dx;
                                 int py2 = dotY + dy;
                                 if (px2 >= 0 && px2 < width && py2 >= 0 && py2 < height)
-                                    px[py2 * stride + px2] = TickText;
+                                    px[py2 * stride + px2] = TextColor;
                             }
                     }
                 }
 
-                // ---- Draw beat markers (using BPM) ----
-                double beatsPerSecond = Bpm / 60.0;
-                double beatInterval = 1.0 / beatsPerSecond;
-
-                if (pixelsPerSecond * beatInterval > 8) // Only if visible
-                {
-                    for (double sec = 0; sec <= totalSec; sec += beatInterval)
-                    {
-                        int x = (int)(sec / totalSec * width);
-                        if (x < 0 || x >= width) continue;
-
-                        bool isBar = Math.Abs((sec / beatInterval) % 4) < 0.01;
-                        uint color = isBar ? TickMinor : Pack(40, 40, 58);
-                        int tickH = isBar ? height / 3 : height / 5;
-
-                        for (int y = height - tickH; y < height - 1; y++)
-                        {
-                            if (px[y * stride + x] == BgColor)
-                                px[y * stride + x] = color;
-                        }
-                    }
-                }
-
-                // ---- Draw playhead ----
                 int playheadX = (int)(PlayheadPosition * (width - 1));
                 playheadX = Math.Clamp(playheadX, 0, width - 1);
 
-                // Glow (3px wide)
-                for (int dx = -1; dx <= 1; dx++)
-                {
-                    int gx = playheadX + dx;
-                    if (gx >= 0 && gx < width)
-                    {
-                        for (int y = 0; y < height; y++)
-                            px[y * stride + gx] = PlayheadGlow;
-                    }
-                }
-
-                // Center line (bright)
                 for (int y = 0; y < height; y++)
                     px[y * stride + playheadX] = PlayheadCol;
 
-                // Playhead triangle at top
-                for (int dy = 0; dy < 6; dy++)
+                for (int dy = 0; dy < 5; dy++)
                 {
-                    int halfW = 6 - dy;
+                    int halfW = 5 - dy;
                     for (int dx = -halfW; dx <= halfW; dx++)
                     {
                         int tx = playheadX + dx;
@@ -306,8 +231,6 @@ namespace WaveCraft.Views.Controls
                 _bitmap.Unlock();
             }
         }
-
-        // ---- Colour helpers ----
 
         private static uint Pack(byte r, byte g, byte b, byte a = 255)
         {

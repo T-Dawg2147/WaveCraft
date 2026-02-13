@@ -7,16 +7,12 @@ using WaveCraft.Core.Analysis;
 namespace WaveCraft.Views.Controls
 {
     /// <summary>
-    /// Custom WPF control that renders audio waveforms using WriteableBitmap
-    /// and unsafe pixel manipulation — same technique as the sprite tools!
-    ///
-    /// The waveform is drawn directly to an unmanaged pixel buffer,
-    /// then blitted to a WriteableBitmap for display. This is orders of
-    /// magnitude faster than using WPF shapes/paths for waveforms.
+    /// Audio waveform display with Ableton Live styling.
+    /// Dark background with flat waveform rendering in track color.
+    /// Uses WriteableBitmap for performance.
     /// </summary>
     public class WaveformControl : Image
     {
-        // ---- Dependency properties ----
         public static readonly DependencyProperty WaveformProperty =
             DependencyProperty.Register(nameof(Waveform), typeof(WaveformData),
                 typeof(WaveformControl),
@@ -25,17 +21,17 @@ namespace WaveCraft.Views.Controls
         public static readonly DependencyProperty WaveColorProperty =
             DependencyProperty.Register(nameof(WaveColor), typeof(Color),
                 typeof(WaveformControl),
-                new PropertyMetadata(Color.FromRgb(137, 180, 250), OnWaveformChanged));
+                new PropertyMetadata(Color.FromRgb(0xFF, 0x66, 0x00), OnWaveformChanged));
 
         public static readonly DependencyProperty RmsColorProperty =
             DependencyProperty.Register(nameof(RmsColor), typeof(Color),
                 typeof(WaveformControl),
-                new PropertyMetadata(Color.FromRgb(88, 91, 112), OnWaveformChanged));
+                new PropertyMetadata(Color.FromRgb(0x2D, 0x2D, 0x2D), OnWaveformChanged));
 
         public static readonly DependencyProperty BackgroundColorProperty =
             DependencyProperty.Register(nameof(BackgroundColor), typeof(Color),
                 typeof(WaveformControl),
-                new PropertyMetadata(Color.FromRgb(30, 30, 46), OnWaveformChanged));
+                new PropertyMetadata(Color.FromRgb(0x1E, 0x1E, 0x1E), OnWaveformChanged));
 
         public WaveformData? Waveform
         {
@@ -88,28 +84,23 @@ namespace WaveCraft.Views.Controls
                     uint* pixels = (uint*)bitmap.BackBuffer;
                     int stride = bitmap.BackBufferStride / 4;
 
-                    // Encode colours as packed uint (BGRA)
                     uint bgPacked = PackColor(BackgroundColor);
                     uint wavePacked = PackColor(WaveColor);
                     uint rmsPacked = PackColor(RmsColor);
 
-                    // Fill background
                     int totalPixels = stride * height;
                     for (int i = 0; i < totalPixels; i++)
                         pixels[i] = bgPacked;
 
-                    // Draw centre line
                     int centreY = height / 2;
-                    uint linePacked = PackColor(Color.FromArgb(40, 255, 255, 255));
+                    uint centerLinePacked = PackColor(Color.FromRgb(0x33, 0x33, 0x33));
                     for (int x = 0; x < width; x++)
-                        pixels[centreY * stride + x] = linePacked;
+                        pixels[centreY * stride + x] = centerLinePacked;
 
-                    // Draw waveform
                     float halfHeight = height / 2f;
 
                     for (int col = 0; col < data.ColumnCount && col < width; col++)
                     {
-                        // RMS body (thicker, dimmer)
                         float rms = data.RmsValues[col];
                         int rmsTop = (int)(centreY - rms * halfHeight);
                         int rmsBot = (int)(centreY + rms * halfHeight);
@@ -119,7 +110,6 @@ namespace WaveCraft.Views.Controls
                         for (int y = rmsTop; y <= rmsBot; y++)
                             pixels[y * stride + col] = rmsPacked;
 
-                        // Peak outline (thinner, brighter)
                         int peakTop = (int)(centreY + data.MinPeaks[col] * halfHeight);
                         int peakBot = (int)(centreY + data.MaxPeaks[col] * halfHeight);
                         peakTop = Math.Clamp(Math.Min(peakTop, peakBot), 0, height - 1);
