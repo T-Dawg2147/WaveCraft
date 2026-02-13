@@ -12,6 +12,9 @@ namespace WaveCraft.Views.Controls
     /// </summary>
     public class MidiClipControl : Image
     {
+        // Controls how many note rows can theoretically fit in the display
+        private const int NOTE_HEIGHT_DIVISOR = 30;
+
         public static readonly DependencyProperty MidiClipProperty =
             DependencyProperty.Register(nameof(MidiClip), typeof(MidiClip),
                 typeof(MidiClipControl),
@@ -132,7 +135,7 @@ namespace WaveCraft.Views.Controls
                         // Calculate vertical position (inverted - higher notes at top)
                         float notePos = (float)(note.NoteNumber - minNote) / noteRange;
                         int y = (int)((1f - notePos) * (height - 4)) + 2; // Leave 2px margin
-                        int noteHeight = Math.Max(2, height / 30); // Scale based on height
+                        int noteHeight = Math.Max(2, height / NOTE_HEIGHT_DIVISOR);
 
                         y = Math.Max(0, Math.Min(height - noteHeight, y));
 
@@ -159,7 +162,8 @@ namespace WaveCraft.Views.Controls
 
         private static uint PackColor(Color color)
         {
-            return (uint)((color.A << 24) | (color.R << 16) | (color.G << 8) | color.B);
+            // Pack color for BGRA32 format: Blue in lowest byte, then Green, Red, Alpha
+            return (uint)((color.B << 0) | (color.G << 8) | (color.R << 16) | (color.A << 24));
         }
     }
 }

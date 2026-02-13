@@ -161,9 +161,6 @@ namespace WaveCraft.ViewModels
         {
             var selectorVm = new InstrumentSelectorViewModel(_dialogService, _projectService.CurrentProject.SampleRate);
             
-            // Pre-select current instrument if it's loaded
-            // (Would need to match by name/type, left as TODO for now)
-            
             var window = new Views.InstrumentSelectorWindow
             {
                 DataContext = selectorVm,
@@ -175,13 +172,14 @@ namespace WaveCraft.ViewModels
             {
                 var instrument = selectorVm.ActiveInstrument;
                 
-                // Apply the selected instrument to this track
-                // For now, we can only set the synth name as a note
-                // A full implementation would wire up IInstrument to MidiTrack
-                // Since MidiSynthesizer doesn't implement IInstrument,
-                // we'll leave the actual wiring for future work
+                // TODO: Apply the selected instrument to this track
+                // The current architecture needs enhancement to support this:
+                // - If instrument is a VstPluginInstance, set _track.VstPlugin = (VstPluginInstance)instrument
+                // - If instrument is a SynthInstrument, we'd need to adapt it to MidiSynthesizer
                 
-                OnPropertyChanged(nameof(InstrumentName));
+                // Once the architecture supports IInstrument directly on MidiTrack:
+                // _track.Instrument = instrument;
+                // OnPropertyChanged(nameof(InstrumentName));
             }
         }
     }

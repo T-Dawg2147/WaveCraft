@@ -294,7 +294,7 @@ namespace WaveCraft.ViewModels
 
         private void OpenPianoRoll()
         {
-            // Find the first MIDI track with clips
+            // Find the first MIDI track
             var midiTrack = _projectService.CurrentProject.Mixer.MidiTracks.FirstOrDefault();
             
             if (midiTrack == null)
