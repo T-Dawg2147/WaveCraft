@@ -251,7 +251,10 @@ namespace WaveCraft.Core.Audio
                 
                 for (int i = 0; i < sampleCount; i++)
                 {
-                    float sample = Math.Clamp(floatData[i], -1.0f, 1.0f);
+                    float sample = floatData[i];
+                    // Fast inline clamping - assumes input is mostly within range
+                    if (sample > 1.0f) sample = 1.0f;
+                    else if (sample < -1.0f) sample = -1.0f;
                     ptr[i] = (short)(sample * 32767f);
                 }
             }

@@ -150,15 +150,12 @@ namespace WaveCraft.Core.Audio
             var output = _mixer.RenderBlock(_playbackPosition, frameCount,
                 _channels, _sampleRate);
 
-            // Copy to the output buffer
+            // Copy to the output buffer using efficient bulk copy
             fixed (float* destPtr = buffer)
             {
                 float* srcPtr = output.Ptr;
                 int sampleCount = frameCount * _channels;
-                for (int i = 0; i < sampleCount; i++)
-                {
-                    destPtr[i] = srcPtr[i];
-                }
+                Buffer.MemoryCopy(srcPtr, destPtr, sampleCount * sizeof(float), sampleCount * sizeof(float));
             }
 
             // Send meter data to the UI (lock-free)
