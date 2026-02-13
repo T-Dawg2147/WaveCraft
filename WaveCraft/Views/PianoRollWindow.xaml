@@ -3,136 +3,279 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:WaveCraft.Views.Controls"
         Title="Piano Roll — MIDI Editor"
-        Width="1200" Height="650"
-        MinWidth="800" MinHeight="400"
-        Background="#FF1E1E2E"
+        Width="1200" Height="700"
+        MinWidth="900" MinHeight="500"
+        Background="{StaticResource AbletonBackground}"
         WindowStartupLocation="CenterOwner">
 
     <Window.Resources>
-        <Style x:Key="ToolBtn" TargetType="Button">
-            <Setter Property="Background" Value="#FF2D2D44"/>
-            <Setter Property="Foreground" Value="#FFCDD6F4"/>
-            <Setter Property="BorderBrush" Value="#FF45475A"/>
+        <!-- Ableton-style Button -->
+        <Style x:Key="AbletonToolButton" TargetType="ToggleButton">
+            <Setter Property="Background" Value="{StaticResource AbletonPanel}"/>
+            <Setter Property="Foreground" Value="{StaticResource AbletonTextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AbletonBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="FontSize" Value="11"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="Button">
+                    <ControlTemplate TargetType="ToggleButton">
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="3" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#FF45475A"/>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Background" Value="{StaticResource AbletonOrange}"/>
+                                <Setter Property="Foreground" Value="{StaticResource AbletonTextHighlight}"/>
                             </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#FF585B70"/>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{StaticResource AbletonHover}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="AbletonButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AbletonPanel}"/>
+            <Setter Property="Foreground" Value="{StaticResource AbletonTextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AbletonBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <!-- Grid Resolution ComboBox Item Style -->
+        <Style x:Key="GridComboBoxItem" TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="{StaticResource AbletonPanel}"/>
+            <Setter Property="Foreground" Value="{StaticResource AbletonTextPrimary}"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Style.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter Property="Background" Value="{StaticResource AbletonOrange}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
+            <!-- Title Bar -->
+            <RowDefinition Height="32"/>
+            <!-- Toolbar -->
             <RowDefinition Height="Auto"/>
+            <!-- Main Piano Roll Area -->
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <!-- Velocity Editor -->
+            <RowDefinition Height="100"/>
+            <!-- Status Bar -->
+            <RowDefinition Height="24"/>
         </Grid.RowDefinitions>
 
-        <!-- ========== TOOLBAR ========== -->
-        <Border Grid.Row="0" Background="#FF181825" Padding="6">
-            <WrapPanel>
-                <!-- Tools -->
-                <TextBlock Text="Tool:" Foreground="#FFA6ADC8" VerticalAlignment="Center"
-                           Margin="0,0,6,0"/>
-                <Button Content="✏ Draw" Style="{StaticResource ToolBtn}"
-                        Command="{Binding SetToolCommand}" CommandParameter="Draw"/>
-                <Button Content="⬚ Select" Style="{StaticResource ToolBtn}"
-                        Command="{Binding SetToolCommand}" CommandParameter="Select"/>
-                <Button Content="✕ Erase" Style="{StaticResource ToolBtn}"
-                        Command="{Binding SetToolCommand}" CommandParameter="Erase"/>
-                <Button Content="⏐ Velocity" Style="{StaticResource ToolBtn}"
-                        Command="{Binding SetToolCommand}" CommandParameter="Velocity"/>
-
-                <Border Width="1" Background="#FF45475A" Margin="8,2"/>
-
-                <!-- Grid -->
-                <TextBlock Text="Grid:" Foreground="#FFA6ADC8" VerticalAlignment="Center"
-                           Margin="0,0,6,0"/>
-                <Button Content="1/4" Style="{StaticResource ToolBtn}"
-                        Command="{Binding SetGridCommand}" CommandParameter="480"/>
-                <Button Content="1/8" Style="{StaticResource ToolBtn}"
-                        Command="{Binding SetGridCommand}" CommandParameter="240"/>
-                <Button Content="1/16" Style="{StaticResource ToolBtn}"
-                        Command="{Binding SetGridCommand}" CommandParameter="120"/>
-                <Button Content="1/32" Style="{StaticResource ToolBtn}"
-                        Command="{Binding SetGridCommand}" CommandParameter="60"/>
-
-                <Border Width="1" Background="#FF45475A" Margin="8,2"/>
-
-                <!-- Edit -->
-                <Button Content="↩ Undo" Style="{StaticResource ToolBtn}"
-                        Command="{Binding UndoCommand}"/>
-                <Button Content="↪ Redo" Style="{StaticResource ToolBtn}"
-                        Command="{Binding RedoCommand}"/>
-
-                <Border Width="1" Background="#FF45475A" Margin="8,2"/>
-
-                <Button Content="⬆ +1" Style="{StaticResource ToolBtn}"
-                        Command="{Binding TransposeUpCommand}" ToolTip="Transpose up 1 semitone"/>
-                <Button Content="⬇ -1" Style="{StaticResource ToolBtn}"
-                        Command="{Binding TransposeDownCommand}" ToolTip="Transpose down 1 semitone"/>
-                <Button Content="⬆⬆ +12" Style="{StaticResource ToolBtn}"
-                        Command="{Binding TransposeOctaveUpCommand}" ToolTip="Transpose up 1 octave"/>
-                <Button Content="⬇⬇ -12" Style="{StaticResource ToolBtn}"
-                        Command="{Binding TransposeOctaveDownCommand}" ToolTip="Transpose down 1 octave"/>
-
-                <Border Width="1" Background="#FF45475A" Margin="8,2"/>
-
-                <Button Content="🎯 Quantise" Style="{StaticResource ToolBtn}"
-                        Command="{Binding QuantiseSelectedCommand}" ToolTip="Quantise to grid"/>
-                <Button Content="📋 Duplicate" Style="{StaticResource ToolBtn}"
-                        Command="{Binding DuplicateSelectedCommand}"/>
-                <Button Content="🗑 Delete" Style="{StaticResource ToolBtn}"
-                        Command="{Binding DeleteSelectedCommand}"/>
-
-                <Border Width="1" Background="#FF45475A" Margin="8,2"/>
-
-                <!-- Velocity -->
-                <TextBlock Text="Vel:" Foreground="#FFA6ADC8" VerticalAlignment="Center"
-                           Margin="0,0,4,0"/>
-                <Slider Minimum="1" Maximum="127" Width="80"
-                        Value="{Binding DefaultVelocity}"
-                        VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding DefaultVelocity}" Foreground="#FFFAB387"
-                           FontFamily="Consolas" VerticalAlignment="Center" Margin="4,0"/>
-            </WrapPanel>
+        <!-- ========== TITLE BAR ========== -->
+        <Border Grid.Row="0" Background="{StaticResource AbletonPanel}"
+                BorderBrush="{StaticResource AbletonBorder}" BorderThickness="0,0,0,1">
+            <Grid>
+                <TextBlock Text="{Binding Clip.Name, StringFormat='Piano Roll - {0}', FallbackValue='Piano Roll - [No Clip]'}"
+                           FontSize="13" FontWeight="SemiBold"
+                           Foreground="{StaticResource AbletonTextHighlight}"
+                           VerticalAlignment="Center" Margin="12,0"/>
+            </Grid>
         </Border>
 
-        <!-- ========== PIANO ROLL CANVAS ========== -->
-        <ScrollViewer Grid.Row="1"
-                      HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto"
-                      Background="#FF11111B">
-            <controls:PianoRollControl
-                x:Name="PianoRoll"
-                ViewModel="{Binding}"
-                Width="3000" Height="2048"/>
-        </ScrollViewer>
+        <!-- ========== TOOLBAR ========== -->
+        <Border Grid.Row="1" Background="{StaticResource AbletonPanel}"
+                BorderBrush="{StaticResource AbletonBorder}" BorderThickness="0,0,0,1"
+                Padding="8,6">
+            <StackPanel Orientation="Horizontal">
+                <!-- Snap to Grid -->
+                <CheckBox Content="Snap" IsChecked="True"
+                          Foreground="{StaticResource AbletonTextPrimary}"
+                          VerticalAlignment="Center" Margin="0,0,12,0"/>
+
+                <!-- Grid Resolution -->
+                <TextBlock Text="Grid:" Foreground="{StaticResource AbletonTextSecondary}"
+                           VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <ComboBox Width="80" VerticalAlignment="Center"
+                          Background="{StaticResource AbletonPanel}"
+                          Foreground="{StaticResource AbletonTextPrimary}"
+                          BorderBrush="{StaticResource AbletonBorder}">
+                    <ComboBoxItem Content="1/1" Style="{StaticResource GridComboBoxItem}"
+                                  Tag="1920"/>
+                    <ComboBoxItem Content="1/2" Style="{StaticResource GridComboBoxItem}"
+                                  Tag="960"/>
+                    <ComboBoxItem Content="1/4" Style="{StaticResource GridComboBoxItem}"
+                                  Tag="480"/>
+                    <ComboBoxItem Content="1/8" Style="{StaticResource GridComboBoxItem}"
+                                  Tag="240" IsSelected="True"/>
+                    <ComboBoxItem Content="1/16" Style="{StaticResource GridComboBoxItem}"
+                                  Tag="120"/>
+                    <ComboBoxItem Content="1/32" Style="{StaticResource GridComboBoxItem}"
+                                  Tag="60"/>
+                </ComboBox>
+
+                <!-- Separator -->
+                <Border Width="1" Height="20" Background="{StaticResource AbletonBorder}"
+                        Margin="12,0"/>
+
+                <!-- Tool Buttons -->
+                <TextBlock Text="Tools:" Foreground="{StaticResource AbletonTextSecondary}"
+                           VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <ToggleButton Content="Draw" Style="{StaticResource AbletonToolButton}"
+                              IsChecked="True"
+                              Command="{Binding SetToolCommand}" CommandParameter="Draw"/>
+                <ToggleButton Content="Select" Style="{StaticResource AbletonToolButton}"
+                              Command="{Binding SetToolCommand}" CommandParameter="Select"/>
+                <ToggleButton Content="Erase" Style="{StaticResource AbletonToolButton}"
+                              Command="{Binding SetToolCommand}" CommandParameter="Erase"/>
+
+                <!-- Separator -->
+                <Border Width="1" Height="20" Background="{StaticResource AbletonBorder}"
+                        Margin="12,0"/>
+
+                <!-- Edit Operations -->
+                <Button Content="Undo" Style="{StaticResource AbletonButton}"
+                        Command="{Binding UndoCommand}"/>
+                <Button Content="Redo" Style="{StaticResource AbletonButton}"
+                        Command="{Binding RedoCommand}"/>
+                <Button Content="Quantize" Style="{StaticResource AbletonButton}"
+                        Command="{Binding QuantiseSelectedCommand}"/>
+                <Button Content="Delete" Style="{StaticResource AbletonButton}"
+                        Command="{Binding DeleteSelectedCommand}"/>
+
+                <!-- Spacer -->
+                <Border Width="20"/>
+
+                <!-- Velocity -->
+                <TextBlock Text="Velocity:" Foreground="{StaticResource AbletonTextSecondary}"
+                           VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <Slider Minimum="1" Maximum="127" Width="100"
+                        Value="{Binding DefaultVelocity}"
+                        VerticalAlignment="Center"
+                        Foreground="{StaticResource AbletonOrange}"/>
+                <TextBlock Text="{Binding DefaultVelocity}" Width="30"
+                           Foreground="{StaticResource AbletonOrange}"
+                           FontFamily="Consolas" FontSize="11" FontWeight="Bold"
+                           VerticalAlignment="Center" Margin="6,0,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ========== MAIN PIANO ROLL AREA ========== -->
+        <Grid Grid.Row="2" Background="{StaticResource AbletonBackground}">
+            <Grid.ColumnDefinitions>
+                <!-- Piano Keys -->
+                <ColumnDefinition Width="80"/>
+                <!-- Note Grid -->
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <!-- Ruler -->
+                <RowDefinition Height="28"/>
+                <!-- Piano Roll -->
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Ruler (Top) -->
+            <Border Grid.Column="0" Grid.Row="0"
+                    Background="{StaticResource AbletonPanel}"
+                    BorderBrush="{StaticResource AbletonBorder}"
+                    BorderThickness="0,0,1,1"/>
+
+            <Border Grid.Column="1" Grid.Row="0"
+                    Background="{StaticResource AbletonPanel}"
+                    BorderBrush="{StaticResource AbletonBorder}"
+                    BorderThickness="0,0,0,1">
+                <Canvas x:Name="RulerCanvas" ClipToBounds="True">
+                    <!-- Ruler timeline (bars/beats) will be drawn by code-behind or here -->
+                    <TextBlock Text="1" Foreground="{StaticResource AbletonTextSecondary}"
+                               FontSize="10" Canvas.Left="0" Canvas.Top="8"/>
+                    <TextBlock Text="2" Foreground="{StaticResource AbletonTextSecondary}"
+                               FontSize="10" Canvas.Left="100" Canvas.Top="8"/>
+                    <TextBlock Text="3" Foreground="{StaticResource AbletonTextSecondary}"
+                               FontSize="10" Canvas.Left="200" Canvas.Top="8"/>
+                    <TextBlock Text="4" Foreground="{StaticResource AbletonTextSecondary}"
+                               FontSize="10" Canvas.Left="300" Canvas.Top="8"/>
+                    <TextBlock Text="5" Foreground="{StaticResource AbletonTextSecondary}"
+                               FontSize="10" Canvas.Left="400" Canvas.Top="8"/>
+                </Canvas>
+            </Border>
+
+            <!-- Piano Keys (Left side) -->
+            <Border Grid.Column="0" Grid.Row="1"
+                    Background="{StaticResource AbletonPanel}"
+                    BorderBrush="{StaticResource AbletonBorder}"
+                    BorderThickness="0,0,1,0">
+                <Canvas x:Name="PianoKeysCanvas" ClipToBounds="True">
+                    <!-- Piano keys will be rendered here (white/black keys) -->
+                    <!-- This can be done with custom drawing or in code-behind -->
+                </Canvas>
+            </Border>
+
+            <!-- Note Grid (Main editing area) -->
+            <ScrollViewer Grid.Column="1" Grid.Row="1"
+                          x:Name="PianoRollScrollViewer"
+                          HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto"
+                          Background="{StaticResource AbletonBackground}">
+                <controls:PianoRollControl
+                    x:Name="PianoRoll"
+                    ViewModel="{Binding}"
+                    Width="3000" Height="2048"/>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- ========== VELOCITY EDITOR ========== -->
+        <Border Grid.Row="3"
+                Background="{StaticResource AbletonPanel}"
+                BorderBrush="{StaticResource AbletonBorder}"
+                BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Velocity Label -->
+                <Border Grid.Column="0" Background="{StaticResource AbletonPanel}">
+                    <TextBlock Text="Velocity" 
+                               Foreground="{StaticResource AbletonTextSecondary}"
+                               FontSize="10" FontWeight="SemiBold"
+                               VerticalAlignment="Center" HorizontalAlignment="Center"
+                               TextWrapping="Wrap"/>
+                </Border>
+
+                <!-- Velocity Bars -->
+                <Canvas Grid.Column="1" x:Name="VelocityCanvas"
+                        Background="{StaticResource AbletonBackground}"
+                        ClipToBounds="True">
+                    <!-- Velocity bars will be drawn dynamically based on Notes collection -->
+                    <!-- For now, showing placeholder grid -->
+                    <Rectangle Width="4" Height="60" Fill="{StaticResource AbletonOrange}"
+                               Canvas.Left="100" Canvas.Bottom="0" VerticalAlignment="Bottom"/>
+                    <Rectangle Width="4" Height="80" Fill="{StaticResource AbletonOrange}"
+                               Canvas.Left="150" Canvas.Bottom="0" VerticalAlignment="Bottom"/>
+                    <Rectangle Width="4" Height="50" Fill="{StaticResource AbletonOrange}"
+                               Canvas.Left="200" Canvas.Bottom="0" VerticalAlignment="Bottom"/>
+                </Canvas>
+            </Grid>
+        </Border>
 
         <!-- ========== STATUS BAR ========== -->
-        <Border Grid.Row="2" Background="#FF181825" Padding="8,4">
+        <Border Grid.Row="4" Background="{StaticResource AbletonPanel}"
+                BorderBrush="{StaticResource AbletonBorder}" BorderThickness="0,1,0,0"
+                Padding="12,0">
             <TextBlock Text="{Binding StatusText}"
-                       Foreground="#FFA6ADC8" FontSize="11"/>
+                       Foreground="{StaticResource AbletonTextSecondary}"
+                       FontSize="10" VerticalAlignment="Center"/>
         </Border>
     </Grid>
 </Window>
