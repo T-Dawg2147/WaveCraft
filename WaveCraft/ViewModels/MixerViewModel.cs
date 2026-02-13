@@ -21,6 +21,7 @@ namespace WaveCraft.ViewModels
         private int _selectedTrackIndex = -1;
 
         public ObservableCollection<TrackViewModel> Tracks { get; } = new();
+        public ObservableCollection<ITrackViewModel> AllTracks { get; } = new();
         public EffectChainViewModel MasterEffects { get; private set; }
 
         public float MasterVolume
@@ -88,16 +89,29 @@ namespace WaveCraft.ViewModels
             RefreshTracks();
         }
 
-        private void RefreshTracks()
+        public void RefreshTracks()
         {
             Tracks.Clear();
+            AllTracks.Clear();
+            
+            // Add audio tracks
             foreach (var track in _mixer.Tracks)
             {
-                Tracks.Add(new TrackViewModel(track, _dialogService,
-                    _projectService, _events));
+                var trackVm = new TrackViewModel(track, _dialogService,
+                    _projectService, _events);
+                Tracks.Add(trackVm);
+                AllTracks.Add(trackVm);
             }
 
-            if (Tracks.Count > 0 && _selectedTrackIndex < 0)
+            // Add MIDI tracks
+            foreach (var track in _mixer.MidiTracks)
+            {
+                var trackVm = new MidiTrackViewModel(track, _dialogService,
+                    _projectService, _events);
+                AllTracks.Add(trackVm);
+            }
+
+            if (AllTracks.Count > 0 && _selectedTrackIndex < 0)
                 SelectedTrackIndex = 0;
         }
 

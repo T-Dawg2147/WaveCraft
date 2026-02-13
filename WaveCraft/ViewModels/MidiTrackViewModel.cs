@@ -1,21 +1,19 @@
-﻿using System.Collections.ObjectModel;
-using System.IO;
+using System.Collections.ObjectModel;
 using System.Windows.Input;
-using WaveCraft.Core.Analysis;
-using WaveCraft.Core.Audio;
 using WaveCraft.Core.Tracks;
+using WaveCraft.Core.Midi;
 using WaveCraft.Mvvm;
 using WaveCraft.Services;
 
 namespace WaveCraft.ViewModels
 {
     /// <summary>
-    /// ViewModel for a single audio track.
-    /// Wraps the AudioTrack model and exposes bindable properties + commands.
+    /// ViewModel for a single MIDI track.
+    /// Wraps the MidiTrack model and exposes bindable properties + commands.
     /// </summary>
-    public class TrackViewModel : ViewModelBase, ITrackViewModel
+    public class MidiTrackViewModel : ViewModelBase, ITrackViewModel
     {
-        private readonly AudioTrack _track;
+        private readonly MidiTrack _track;
         private readonly IDialogService _dialogService;
         private readonly IProjectService _projectService;
         private readonly IEventAggregator _events;
@@ -27,8 +25,8 @@ namespace WaveCraft.ViewModels
         private bool _isSoloed;
         private float _peakLevel;
 
-        public AudioTrack Model => _track;
-        public ObservableCollection<ClipViewModel> Clips { get; } = new();
+        public MidiTrack Model => _track;
+        public ObservableCollection<MidiClipViewModel> Clips { get; } = new();
 
         public string Name
         {
@@ -92,15 +90,15 @@ namespace WaveCraft.ViewModels
             set => SetProperty(ref _peakLevel, value);
         }
 
-        public bool IsMidiTrack => false;
+        public bool IsMidiTrack => true;
 
         // ---- Commands ----
-        public ICommand ImportAudioCommand { get; }
+        public ICommand OpenPianoRollCommand { get; }
         public ICommand RemoveClipCommand { get; }
         public ICommand ToggleMuteCommand { get; }
         public ICommand ToggleSoloCommand { get; }
 
-        public TrackViewModel(AudioTrack track, IDialogService dialogService,
+        public MidiTrackViewModel(MidiTrack track, IDialogService dialogService,
             IProjectService projectService, IEventAggregator events)
         {
             _track = track;
@@ -114,56 +112,29 @@ namespace WaveCraft.ViewModels
             _isMuted = track.IsMuted;
             _isSoloed = track.IsSoloed;
 
-            ImportAudioCommand = new RelayCommand(ImportAudio);
-            RemoveClipCommand = new RelayCommand(p => RemoveClip(p as ClipViewModel));
+            OpenPianoRollCommand = new RelayCommand(OpenPianoRoll);
+            RemoveClipCommand = new RelayCommand(p => RemoveClip(p as MidiClipViewModel));
             ToggleMuteCommand = new RelayCommand(() => IsMuted = !IsMuted);
             ToggleSoloCommand = new RelayCommand(() => IsSoloed = !IsSoloed);
 
             // Load existing clips
             foreach (var clip in track.Clips)
-                Clips.Add(new ClipViewModel(clip, _projectService.CurrentProject.SampleRate));
+                Clips.Add(new MidiClipViewModel(clip, _projectService.CurrentProject.Bpm));
         }
 
-        private void ImportAudio()
+        private void OpenPianoRoll()
         {
-            var path = _dialogService.ShowOpenFileDialog(
-                "Audio Files|*.wav;*.wave", "Import Audio");
-            if (path == null) return;
-
-            try
+            // Get the first clip if available
+            if (_track.Clips.Count > 0)
             {
-                var (buffer, format) = WavFileReader.LoadFromFile(path);
-
-                var clip = new AudioClip
-                {
-                    Name = Path.GetFileNameWithoutExtension(path),
-                    SourceBuffer = buffer,
-                    StartFrame = GetNextAvailableFrame()
-                };
-
-                _track.Clips.Add(clip);
-                Clips.Add(new ClipViewModel(clip,
-                    _projectService.CurrentProject.SampleRate));
-
-                _events.Publish(new TrackClipsChanged(0));
-            }
-            catch (Exception ex)
-            {
-                _dialogService.ShowError($"Failed to import audio:\n{ex.Message}");
+                var clip = _track.Clips[0];
+                var pianoRollVm = new PianoRollViewModel { Clip = clip };
+                var window = new Views.PianoRollWindow { DataContext = pianoRollVm };
+                window.Show();
             }
         }
 
-        private long GetNextAvailableFrame()
-        {
-            long maxEnd = 0;
-            foreach (var clip in _track.Clips)
-            {
-                if (clip.EndFrame > maxEnd) maxEnd = clip.EndFrame;
-            }
-            return maxEnd;
-        }
-
-        private void RemoveClip(ClipViewModel? clipVm)
+        private void RemoveClip(MidiClipViewModel? clipVm)
         {
             if (clipVm == null) return;
             _track.Clips.Remove(clipVm.Model);
@@ -173,14 +144,14 @@ namespace WaveCraft.ViewModels
     }
 
     /// <summary>
-    /// ViewModel for a single audio clip on a track.
+    /// ViewModel for a single MIDI clip on a track.
     /// </summary>
-    public class ClipViewModel : ViewModelBase
+    public class MidiClipViewModel : ViewModelBase
     {
-        private readonly AudioClip _clip;
-        private WaveformData? _waveformData;
+        private readonly MidiClip _clip;
+        private readonly float _bpm;
 
-        public AudioClip Model => _clip;
+        public MidiClip Model => _clip;
 
         public string Name
         {
@@ -188,43 +159,39 @@ namespace WaveCraft.ViewModels
             set { _clip.Name = value; OnPropertyChanged(); }
         }
 
-        public long StartFrame
+        public long StartTick
         {
-            get => _clip.StartFrame;
-            set { _clip.StartFrame = value; OnPropertyChanged(); OnPropertyChanged(nameof(StartSeconds)); }
+            get => _clip.StartTick;
+            set { _clip.StartTick = value; OnPropertyChanged(); OnPropertyChanged(nameof(StartSeconds)); }
         }
 
-        public double StartSeconds => (double)_clip.StartFrame / _sampleRate;
-        public double DurationSeconds => (double)_clip.EffectiveDuration / _sampleRate;
-
-        public float ClipVolume
+        public long LengthTicks
         {
-            get => _clip.Volume;
-            set { _clip.Volume = Math.Clamp(value, 0f, 2f); OnPropertyChanged(); }
+            get => _clip.LengthTicks;
+            set { _clip.LengthTicks = value; OnPropertyChanged(); OnPropertyChanged(nameof(DurationSeconds)); }
         }
 
-        public WaveformData? WaveformData
-        {
-            get => _waveformData;
-            private set => SetProperty(ref _waveformData, value);
-        }
+        public double StartSeconds => MidiConstants.TicksToSeconds(_clip.StartTick, _bpm);
+        public double DurationSeconds => MidiConstants.TicksToSeconds(_clip.LengthTicks, _bpm);
 
-        private readonly int _sampleRate;
-
-        public ClipViewModel(AudioClip clip, int sampleRate)
+        public MidiClipViewModel(MidiClip clip, float bpm)
         {
             _clip = clip;
-            _sampleRate = sampleRate;
-            GenerateWaveform();
+            _bpm = bpm;
         }
 
         /// <summary>
-        /// Generate waveform peak data for the clip's visual display.
+        /// Get a simple preview of notes for visualization.
+        /// Returns a list of (noteNumber, startTick, duration) tuples.
         /// </summary>
-        public void GenerateWaveform(int columns = 400)
+        public List<(int noteNumber, long startTick, long duration)> GetNotePreview()
         {
-            if (_clip.SourceBuffer == null) return;
-            WaveformData = WaveformGenerator.Generate(_clip.SourceBuffer, 0, columns);
+            var preview = new List<(int, long, long)>();
+            foreach (var note in _clip.Notes)
+            {
+                preview.Add((note.NoteNumber, note.StartTick, note.DurationTicks));
+            }
+            return preview;
         }
     }
 }

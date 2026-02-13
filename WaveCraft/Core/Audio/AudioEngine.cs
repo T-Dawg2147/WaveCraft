@@ -51,6 +51,9 @@ namespace WaveCraft.Core.Audio
         private AudioBuffer? _outputBufferB;
         private volatile int _activeBuffer; // 0 = A, 1 = B
 
+        // Real audio output to speakers
+        private WaveOutPlayer? _waveOutPlayer;
+
         public long PlaybackPosition => _playbackPosition;
         public bool IsPlaying => _isPlaying;
         public bool IsPaused => _isPaused;
@@ -68,6 +71,9 @@ namespace WaveCraft.Core.Audio
 
             _outputBufferA = new AudioBuffer(bufferSize, channels);
             _outputBufferB = new AudioBuffer(bufferSize, channels);
+
+            // Create the wave output player
+            _waveOutPlayer = new WaveOutPlayer(sampleRate, channels, bufferSize, RenderAudioCallback);
         }
 
         /// <summary>
@@ -90,16 +96,19 @@ namespace WaveCraft.Core.Audio
         public void Play()
         {
             _commandQueue.Enqueue(new EngineCommand(CommandType.Play));
+            _waveOutPlayer?.Start();
         }
 
         public void Pause()
         {
             _commandQueue.Enqueue(new EngineCommand(CommandType.Pause));
+            _waveOutPlayer?.Stop();
         }
 
         public void Stop()
         {
             _commandQueue.Enqueue(new EngineCommand(CommandType.Stop));
+            _waveOutPlayer?.Stop();
         }
 
         public void Seek(long frame)
@@ -124,6 +133,59 @@ namespace WaveCraft.Core.Audio
         /// </summary>
         public AudioBuffer GetCurrentOutputBuffer()
             => _activeBuffer == 0 ? _outputBufferA! : _outputBufferB!;
+
+        /// <summary>
+        /// Audio callback invoked by WaveOutPlayer when it needs more audio data.
+        /// This is called from the audio driver's callback thread.
+        /// </summary>
+        private unsafe bool RenderAudioCallback(float[] buffer, int frameCount)
+        {
+            if (!_isPlaying || _isPaused)
+            {
+                // Return silence if not playing
+                return false;
+            }
+
+            // Render the next block of audio
+            var output = _mixer.RenderBlock(_playbackPosition, frameCount,
+                _channels, _sampleRate);
+
+            // Copy to the output buffer using efficient bulk copy
+            fixed (float* destPtr = buffer)
+            {
+                float* srcPtr = output.Ptr;
+                int sampleCount = frameCount * _channels;
+                Buffer.MemoryCopy(srcPtr, destPtr, sampleCount * sizeof(float), sampleCount * sizeof(float));
+            }
+
+            // Send meter data to the UI (lock-free)
+            _meterQueue.Enqueue(new MeterData(
+                _mixer.LastLeftPeak, _mixer.LastRightPeak,
+                _mixer.LastLeftRms, _mixer.LastRightRms,
+                _playbackPosition));
+
+            // Publish position update
+            _events.Publish(new PlaybackPositionChanged(
+                TimeSpan.FromSeconds((double)_playbackPosition / _sampleRate),
+                _playbackPosition));
+
+            // Advance playback position
+            _playbackPosition += frameCount;
+
+            // Check if we've reached the end of the project
+            long totalFrames = _mixer.GetTotalDurationFrames();
+            if (totalFrames > 0 && _playbackPosition >= totalFrames)
+            {
+                _isPlaying = false;
+                _playbackPosition = 0;
+                _waveOutPlayer?.Stop();
+                _events.Publish(new TransportStateChanged(
+                    TransportState.Stopped, TimeSpan.Zero));
+                return false;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// The render loop — runs continuously on the audio thread.
@@ -225,6 +287,7 @@ namespace WaveCraft.Core.Audio
         {
             _shouldStop = true;
             _playEvent.Set(); // Wake the thread if it's waiting
+            _waveOutPlayer?.Dispose();
             _renderThread?.Join(2000);
             _outputBufferA?.Dispose();
             _outputBufferB?.Dispose();
