@@ -25,6 +25,7 @@ namespace WaveCraft.Core.Tracks
 
         public float MasterVolume { get; set; } = 1.0f;
         public float Bpm { get; set; } = 120f;
+        public int SampleRate { get; set; } = 44100;
 
         // Peak levels from the last render — read by the UI for metering
         public float LastLeftPeak { get; private set; }
@@ -42,7 +43,6 @@ namespace WaveCraft.Core.Tracks
         public void RemoveTrack(AudioTrack track)
         {
             _tracks.Remove(track);
-            track.Dispose();
         }
 
         public MidiTrack AddMidiTrack(string name, int sampleRate)
@@ -55,7 +55,6 @@ namespace WaveCraft.Core.Tracks
         public void RemoveMidiTrack(MidiTrack track)
         {
             _midiTracks.Remove(track);
-            track.Dispose();
         }
 
         /// <summary>
@@ -133,7 +132,7 @@ namespace WaveCraft.Core.Tracks
             }
             foreach (var track in _midiTracks)
             {
-                long dur = track.GetTotalDurationFrames(Bpm, 44100);
+                long dur = track.GetTotalDurationFrames(Bpm, SampleRate);
                 if (dur > max) max = dur;
             }
             return max;

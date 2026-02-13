@@ -111,7 +111,7 @@ namespace WaveCraft.ViewModels
                 AllTracks.Add(trackVm);
             }
 
-            if (Tracks.Count > 0 && _selectedTrackIndex < 0)
+            if (AllTracks.Count > 0 && _selectedTrackIndex < 0)
                 SelectedTrackIndex = 0;
         }
 

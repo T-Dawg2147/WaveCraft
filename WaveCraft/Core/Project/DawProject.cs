@@ -32,6 +32,7 @@ namespace WaveCraft.Core.Project
         public DawProject()
         {
             Mixer.Bpm = _bpm;
+            Mixer.SampleRate = SampleRate;
         }
 
         public AudioFormat Format => new(SampleRate, Channels, 32);
