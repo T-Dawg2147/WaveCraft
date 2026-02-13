@@ -294,14 +294,23 @@ namespace WaveCraft.ViewModels
 
         private void OpenPianoRoll()
         {
-            // Open piano roll for the first MIDI clip found
-            // In a full implementation, this would open for the selected clip
-            var clip = new MidiClip
+            // Find the first MIDI track with clips
+            var midiTrack = _projectService.CurrentProject.Mixer.MidiTracks.FirstOrDefault();
+            
+            if (midiTrack == null)
             {
-                Name = "New Pattern",
-                LengthTicks = MidiConstants.WholeNote * 4
-            };
+                StatusText = "No MIDI tracks found. Create a MIDI track first.";
+                return;
+            }
 
+            if (midiTrack.Clips.Count == 0)
+            {
+                StatusText = "No MIDI clips found on selected track.";
+                return;
+            }
+
+            // Open piano roll for the first clip on the first MIDI track
+            var clip = midiTrack.Clips[0];
             OpenPianoRollForClip(clip);
         }
 
